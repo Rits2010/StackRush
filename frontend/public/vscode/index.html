@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>VS Code Web Placeholder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      :root { color-scheme: light dark; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #0f172a;
+        color: #e2e8f0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      .container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid #334155;
+        background: #111827;
+      }
+      .dots { display: flex; gap: 6px; }
+      .dot { width: 10px; height: 10px; border-radius: 9999px; }
+      .red { background: #ef4444; }
+      .yellow { background: #f59e0b; }
+      .green { background: #22c55e; }
+      .content {
+        flex: 1;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+      }
+      .panel {
+        max-width: 720px;
+        width: 100%;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        background: #0b1220;
+        padding: 24px;
+      }
+      code, pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        background: #0a0f1c;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 12px;
+        display: block;
+        overflow-x: auto;
+        color: #93c5fd;
+      }
+      .notice {
+        color: #e5e7eb;
+        margin-bottom: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="bar">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="dots">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+          </div>
+          <strong>VS Code Web Workbench</strong>
+        </div>
+        <small>Placeholder host (awaiting official web-min build)</small>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <p class="notice">
+            This is a placeholder page for self-hosted VS Code Web. You will replace this folder with the official web-min build.
+          </p>
+          <p class="notice">
+            Until then, the bridge will still respond to messages so your app can compile/run.
+          </p>
+          <pre><code>Replacement steps:
+1. Download the official VS Code Web build (web-min) for a specific version from the microsoft/vscode releases.
+2. Replace the entire /public/vscode directory with the contents of the web-min build (preserve this path).
+3. Ensure the entry is available as /vscode/index.html.
+4. Keep a reference to host-bridge injection (see below) or add a small script tag to load /vscode/host-bridge.js.</code></pre>
+          <p class="notice">Message bridge shim active. Once real workbench is present, it will consume the same messages.</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="./host-bridge.js"></script>
+  </body>
+</html>

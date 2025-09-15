@@ -1,0 +1,2490 @@
+{
+  "apiInfo": {
+    "title": "StackRush Backend API",
+    "version": "1.0.0",
+    "description": "Complete API documentation for StackRush coding challenge platform. JWT-based authentication with MongoDB storage and frontend code execution.",
+    "baseUrl": "http://localhost:3000/api",
+    "authentication": "JWT Bearer Token",
+    "features": [
+      "JWT Authentication",
+      "MongoDB Database", 
+      "Frontend Code Execution",
+      "Email Notifications",
+      "Push Notifications (planned)",
+      "RESTful API Design",
+      "Rate Limiting",
+      "Input Validation"
+    ],
+    "removedFeatures": [
+      "Real-time Socket.IO communication (removed in v1.0.0)",
+      "Redis caching and session management (removed in v1.0.0)"
+    ]
+  },
+  "endpoints": {
+    "authentication": {
+      "register": {
+        "method": "POST",
+        "path": "/auth/register",
+        "description": "Register a new user account",
+        "authentication": "None",
+        "rateLimit": "5 requests per 15 minutes per IP",
+        "requestBody": {
+          "email": {
+            "type": "string",
+            "required": true,
+            "format": "email",
+            "example": "user@example.com",
+            "validation": "Valid email address, max 255 characters"
+          },
+          "username": {
+            "type": "string",
+            "required": true,
+            "example": "johndoe123",
+            "validation": "3-30 characters, alphanumeric, underscores, hyphens only"
+          },
+          "password": {
+            "type": "string",
+            "required": true,
+            "example": "SecurePass123!",
+            "validation": "Min 8 chars, must contain uppercase, lowercase, number, special character"
+          },
+          "firstName": {
+            "type": "string",
+            "required": false,
+            "example": "John",
+            "validation": "Max 50 characters"
+          },
+          "lastName": {
+            "type": "string",
+            "required": false,
+            "example": "Doe",
+            "validation": "Max 50 characters"
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "user": {
+                  "id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                  "email": "user@example.com",
+                  "username": "johndoe123",
+                  "emailVerified": false
+                }
+              },
+              "message": "User registered successfully. Please check your email for verification.",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "409": {
+            "description": "Email or username already exists",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "EMAIL_EXISTS",
+                "message": "Email already registered",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/auth/register"
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed",
+                "details": [
+                  {
+                    "field": "email",
+                    "message": "Please provide a valid email address",
+                    "value": "invalid-email"
+                  }
+                ],
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/auth/register"
+              }
+            }
+          }
+        }
+      },
+      "login": {
+        "method": "POST",
+        "path": "/auth/login",
+        "description": "Login with email/username and password",
+        "authentication": "None",
+        "rateLimit": "5 requests per 15 minutes per IP",
+        "requestBody": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "example": "user@example.com",
+            "description": "Email address or username"
+          },
+          "password": {
+            "type": "string",
+            "required": true,
+            "example": "SecurePass123!"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "body": {
+              "success": true,
+              "data": {
+                "user": {
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                  "email": "user@example.com",
+                  "username": "johndoe123",
+                  "profile": {
+                    "firstName": "John",
+                    "lastName": "Doe",
+                    "avatar": null,
+                    "bio": null
+                  },
+                  "stats": {
+                    "level": 1,
+                    "xp": 0,
+                    "totalChallenges": 0,
+                    "completedChallenges": 0,
+                    "streak": 0
+                  },
+                  "roles": ["user"],
+                  "emailVerified": true
+                },
+                "tokens": {
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+              },
+              "message": "Login successful",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "401": {
+            "description": "Invalid credentials or account locked",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "INVALID_CREDENTIALS",
+                "message": "Invalid email/username or password",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/auth/login"
+              }
+            }
+          }
+        }
+      },
+      "refreshToken": {
+        "method": "POST",
+        "path": "/auth/refresh",
+        "description": "Refresh access token using refresh token",
+        "authentication": "None",
+        "requestBody": {
+          "refreshToken": {
+            "type": "string",
+            "required": true,
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "tokens": {
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+              },
+              "message": "Token refreshed successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "401": {
+            "description": "Invalid or expired refresh token",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "INVALID_REFRESH_TOKEN",
+                "message": "Invalid refresh token",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/auth/refresh"
+              }
+            }
+          }
+        }
+      },
+      "logout": {
+        "method": "POST",
+        "path": "/auth/logout",
+        "description": "Logout user (revoke refresh token)",
+        "authentication": "Bearer Token Required",
+        "requestBody": {
+          "refreshToken": {
+            "type": "string",
+            "required": true,
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "body": {
+              "success": true,
+              "message": "Logout successful",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "forgotPassword": {
+        "method": "POST",
+        "path": "/auth/forgot-password",
+        "description": "Request password reset email",
+        "authentication": "None",
+        "rateLimit": "3 requests per hour per IP",
+        "requestBody": {
+          "email": {
+            "type": "string",
+            "required": true,
+            "format": "email",
+            "example": "user@example.com"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset email sent (always returns success)",
+            "body": {
+              "success": true,
+              "message": "If the email exists, a password reset link has been sent.",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "resetPassword": {
+        "method": "POST",
+        "path": "/auth/reset-password",
+        "description": "Reset password using reset token",
+        "authentication": "None",
+        "requestBody": {
+          "token": {
+            "type": "string",
+            "required": true,
+            "example": "abc123def456ghi789"
+          },
+          "password": {
+            "type": "string",
+            "required": true,
+            "example": "NewSecurePass123!",
+            "validation": "Min 8 chars, must contain uppercase, lowercase, number, special character"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successfully",
+            "body": {
+              "success": true,
+              "message": "Password reset successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "400": {
+            "description": "Invalid or expired reset token",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "INVALID_RESET_TOKEN",
+                "message": "Invalid or expired reset token",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/auth/reset-password"
+              }
+            }
+          }
+        }
+      },
+      "verifyEmail": {
+        "method": "POST",
+        "path": "/auth/verify-email",
+        "description": "Verify email address using verification token",
+        "authentication": "None",
+        "requestBody": {
+          "token": {
+            "type": "string",
+            "required": true,
+            "example": "abc123def456ghi789"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verified successfully",
+            "body": {
+              "success": true,
+              "message": "Email verified successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "400": {
+            "description": "Invalid verification token",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "INVALID_VERIFICATION_TOKEN",
+                "message": "Invalid verification token",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/auth/verify-email"
+              }
+            }
+          }
+        }
+      },
+      "changePassword": {
+        "method": "POST",
+        "path": "/auth/change-password",
+        "description": "Change password for authenticated user",
+        "authentication": "Bearer Token Required",
+        "requestBody": {
+          "currentPassword": {
+            "type": "string",
+            "required": true,
+            "example": "OldPassword123!"
+          },
+          "newPassword": {
+            "type": "string",
+            "required": true,
+            "example": "NewSecurePass123!",
+            "validation": "Min 8 chars, must contain uppercase, lowercase, number, special character"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "body": {
+              "success": true,
+              "message": "Password changed successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "400": {
+            "description": "Current password is incorrect",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "INCORRECT_CURRENT_PASSWORD",
+                "message": "Current password is incorrect",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/auth/change-password"
+              }
+            }
+          }
+        }
+      }
+    },
+    "users": {
+      "getProfile": {
+        "method": "GET",
+        "path": "/users/profile",
+        "description": "Get current user profile",
+        "authentication": "Bearer Token Required",
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                "email": "user@example.com",
+                "username": "johndoe123",
+                "profile": {
+                  "firstName": "John",
+                  "lastName": "Doe",
+                  "avatar": "https://example.com/avatar.jpg",
+                  "bio": "Software developer passionate about coding challenges",
+                  "location": "San Francisco, CA",
+                  "website": "https://johndoe.dev",
+                  "github": "johndoe123",
+                  "linkedin": "john-doe-dev"
+                },
+                "stats": {
+                  "level": 5,
+                  "xp": 4250,
+                  "totalChallenges": 25,
+                  "completedChallenges": 18,
+                  "streak": 7,
+                  "lastActiveDate": "2024-01-15T09:00:00.000Z"
+                },
+                "preferences": {
+                  "theme": "dark",
+                  "notifications": {
+                    "email": true,
+                    "push": true,
+                    "achievements": true,
+                    "challenges": true
+                  },
+                  "privacy": {
+                    "profilePublic": true,
+                    "showStats": true,
+                    "showActivity": true
+                  }
+                },
+                "roles": ["user"],
+                "isActive": true,
+                "emailVerified": true,
+                "createdAt": "2024-01-01T00:00:00.000Z",
+                "updatedAt": "2024-01-15T10:30:00.000Z"
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "updateProfile": {
+        "method": "PUT",
+        "path": "/users/profile",
+        "description": "Update current user profile",
+        "authentication": "Bearer Token Required",
+        "requestBody": {
+          "profile": {
+            "type": "object",
+            "required": false,
+            "properties": {
+              "firstName": {
+                "type": "string",
+                "example": "John",
+                "validation": "Max 50 characters"
+              },
+              "lastName": {
+                "type": "string",
+                "example": "Doe",
+                "validation": "Max 50 characters"
+              },
+              "avatar": {
+                "type": "string",
+                "format": "uri",
+                "example": "https://example.com/avatar.jpg"
+              },
+              "bio": {
+                "type": "string",
+                "example": "Software developer passionate about coding challenges",
+                "validation": "Max 500 characters"
+              },
+              "location": {
+                "type": "string",
+                "example": "San Francisco, CA",
+                "validation": "Max 100 characters"
+              },
+              "website": {
+                "type": "string",
+                "format": "uri",
+                "example": "https://johndoe.dev"
+              },
+              "github": {
+                "type": "string",
+                "example": "johndoe123",
+                "validation": "Max 39 characters, alphanumeric, underscores, hyphens only"
+              },
+              "linkedin": {
+                "type": "string",
+                "example": "john-doe-dev",
+                "validation": "Max 100 characters"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                "email": "user@example.com",
+                "username": "johndoe123",
+                "profile": {
+                  "firstName": "John",
+                  "lastName": "Doe Updated"
+                }
+              },
+              "message": "Profile updated successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "updatePreferences": {
+        "method": "PUT",
+        "path": "/users/preferences",
+        "description": "Update user preferences",
+        "authentication": "Bearer Token Required",
+        "requestBody": {
+          "theme": {
+            "type": "string",
+            "enum": ["light", "dark"],
+            "example": "dark"
+          },
+          "notifications": {
+            "type": "object",
+            "properties": {
+              "email": {"type": "boolean", "example": true},
+              "push": {"type": "boolean", "example": false},
+              "achievements": {"type": "boolean", "example": true},
+              "challenges": {"type": "boolean", "example": true}
+            }
+          },
+          "privacy": {
+            "type": "object",
+            "properties": {
+              "profilePublic": {"type": "boolean", "example": true},
+              "showStats": {"type": "boolean", "example": false},
+              "showActivity": {"type": "boolean", "example": true}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preferences updated successfully",
+            "body": {
+              "success": true,
+              "message": "Preferences updated successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getUserById": {
+        "method": "GET",
+        "path": "/users/{id}",
+        "description": "Get user by ID (respects privacy settings)",
+        "authentication": "Optional Bearer Token",
+        "parameters": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d0",
+            "description": "MongoDB ObjectId"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                "username": "johndoe123",
+                "profile": {
+                  "firstName": "John",
+                  "lastName": "Doe",
+                  "avatar": "https://example.com/avatar.jpg"
+                },
+                "stats": {
+                  "level": 5,
+                  "xp": 4250
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "403": {
+            "description": "Profile is private",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "PROFILE_PRIVATE",
+                "message": "This profile is private",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/users/64f8a1b2c3d4e5f6a7b8c9d0"
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "USER_NOT_FOUND",
+                "message": "User not found",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/users/64f8a1b2c3d4e5f6a7b8c9d0"
+              }
+            }
+          }
+        }
+      },
+      "getUserByUsername": {
+        "method": "GET",
+        "path": "/users/username/{username}",
+        "description": "Get user by username (respects privacy settings)",
+        "authentication": "Optional Bearer Token",
+        "parameters": {
+          "username": {
+            "type": "string",
+            "required": true,
+            "example": "johndoe123",
+            "validation": "3-30 characters, alphanumeric, underscores, hyphens only"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                "username": "johndoe123",
+                "profile": {
+                  "firstName": "John",
+                  "lastName": "Doe"
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getUserStats": {
+        "method": "GET",
+        "path": "/users/{id}/stats",
+        "description": "Get user statistics (respects privacy settings)",
+        "authentication": "Optional Bearer Token",
+        "parameters": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d0"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User statistics retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "level": 5,
+                "xp": 4250,
+                "totalChallenges": 25,
+                "completedChallenges": 18,
+                "streak": 7,
+                "lastActiveDate": "2024-01-15T09:00:00.000Z",
+                "completionRate": 72.0,
+                "averageScore": 85.5
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "403": {
+            "description": "Statistics are private",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "STATS_PRIVATE",
+                "message": "User statistics are private",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/users/64f8a1b2c3d4e5f6a7b8c9d0/stats"
+              }
+            }
+          }
+        }
+      },
+      "getLeaderboard": {
+        "method": "GET",
+        "path": "/users/leaderboard",
+        "description": "Get leaderboard rankings",
+        "authentication": "Optional Bearer Token",
+        "queryParameters": {
+          "type": {
+            "type": "string",
+            "enum": ["xp", "level", "streak", "completed"],
+            "default": "xp",
+            "example": "xp"
+          },
+          "limit": {
+            "type": "number",
+            "min": 1,
+            "max": 100,
+            "default": 10,
+            "example": 10
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Leaderboard retrieved successfully",
+            "body": {
+              "success": true,
+              "data": [
+                {
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                  "username": "topuser123",
+                  "profile": {
+                    "firstName": "Top",
+                    "lastName": "User",
+                    "avatar": "https://example.com/avatar1.jpg"
+                  },
+                  "stats": {
+                    "level": 10,
+                    "xp": 9500,
+                    "completedChallenges": 45,
+                    "streak": 15
+                  }
+                }
+              ],
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getUsers": {
+        "method": "GET",
+        "path": "/users",
+        "description": "Get users list with filters (Admin only)",
+        "authentication": "Bearer Token Required (Admin)",
+        "queryParameters": {
+          "page": {"type": "number", "default": 1, "example": 1},
+          "limit": {"type": "number", "default": 10, "example": 10},
+          "sort": {"type": "string", "default": "createdAt", "example": "createdAt"},
+          "order": {"type": "string", "enum": ["asc", "desc"], "default": "desc"},
+          "search": {"type": "string", "example": "john"},
+          "level": {"type": "number", "example": 5},
+          "minXp": {"type": "number", "example": 1000},
+          "maxXp": {"type": "number", "example": 5000},
+          "roles": {"type": "array", "items": {"enum": ["user", "admin", "moderator"]}},
+          "isActive": {"type": "boolean", "example": true},
+          "emailVerified": {"type": "boolean", "example": true}
+        },
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "data": [
+                  {
+                    "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                    "email": "user@example.com",
+                    "username": "johndoe123",
+                    "profile": {"firstName": "John", "lastName": "Doe"},
+                    "stats": {"level": 5, "xp": 4250},
+                    "roles": ["user"],
+                    "isActive": true,
+                    "emailVerified": true
+                  }
+                ],
+                "pagination": {
+                  "page": 1,
+                  "limit": 10,
+                  "total": 100,
+                  "pages": 10,
+                  "hasNext": true,
+                  "hasPrev": false
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "deleteAccount": {
+        "method": "DELETE",
+        "path": "/users/account",
+        "description": "Delete current user account (soft delete)",
+        "authentication": "Bearer Token Required",
+        "responses": {
+          "200": {
+            "description": "Account deleted successfully",
+            "body": {
+              "success": true,
+              "message": "Account deleted successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "challenges": {
+      "getChallenges": {
+        "method": "GET",
+        "path": "/challenges",
+        "description": "Get challenges with filters and pagination",
+        "authentication": "Optional Bearer Token",
+        "queryParameters": {
+          "page": {"type": "number", "default": 1, "example": 1},
+          "limit": {"type": "number", "default": 10, "example": 10},
+          "sort": {"type": "string", "default": "createdAt", "example": "createdAt"},
+          "order": {"type": "string", "enum": ["asc", "desc"], "default": "desc"},
+          "search": {"type": "string", "example": "binary tree"},
+          "type": {"type": "string", "enum": ["dsa", "bug-fix", "feature"], "example": "dsa"},
+          "difficulty": {"type": "string", "enum": ["Easy", "Medium", "Hard"], "example": "Medium"},
+          "category": {"type": "string", "example": "algorithms"},
+          "tags": {"type": "array", "items": {"type": "string"}, "example": ["tree", "recursion"]},
+          "timeLimit": {"type": "number", "example": 60},
+          "author": {"type": "string", "example": "64f8a1b2c3d4e5f6a7b8c9d0"}
+        },
+        "responses": {
+          "200": {
+            "description": "Challenges retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "data": [
+                  {
+                    "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                    "title": "Binary Tree Traversal",
+                    "slug": "binary-tree-traversal",
+                    "description": "Implement in-order, pre-order, and post-order traversal for a binary tree",
+                    "type": "dsa",
+                    "difficulty": "Medium",
+                    "category": "algorithms",
+                    "tags": ["tree", "recursion", "traversal"],
+                    "timeLimit": 60,
+                    "content": {
+                      "problemStatement": "Given a binary tree, implement three traversal methods...",
+                      "examples": [
+                        {
+                          "input": "root = [1,null,2,3]",
+                          "output": "[1,3,2]",
+                          "explanation": "In-order traversal result"
+                        }
+                      ],
+                      "hints": ["Consider using recursion", "Think about the order of visiting nodes"]
+                    },
+                    "code": {
+                      "starterCode": {
+                        "javascript": "function inorderTraversal(root) {\n    // Your code here\n}",
+                        "python": "def inorder_traversal(root):\n    # Your code here\n    pass"
+                      },
+                      "testCases": [
+                        {
+                          "input": "[1,null,2,3]",
+                          "expectedOutput": "[1,3,2]",
+                          "isHidden": false,
+                          "weight": 1
+                        }
+                      ]
+                    },
+                    "scenario": {
+                      "background": "You're working at a tech company and need to implement tree traversal algorithms",
+                      "role": "Software Engineer",
+                      "company": "TechCorp",
+                      "urgency": "medium"
+                    },
+                    "stats": {
+                      "totalAttempts": 150,
+                      "successfulAttempts": 95,
+                      "averageTime": 45.5,
+                      "averageScore": 78.2,
+                      "popularityScore": 85
+                    },
+                    "author": {
+                      "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                      "username": "admin",
+                      "profile": {"firstName": "Admin", "lastName": "User"}
+                    },
+                    "isPublic": true,
+                    "isActive": true,
+                    "createdAt": "2024-01-10T00:00:00.000Z",
+                    "updatedAt": "2024-01-15T10:30:00.000Z"
+                  }
+                ],
+                "pagination": {
+                  "page": 1,
+                  "limit": 10,
+                  "total": 50,
+                  "pages": 5,
+                  "hasNext": true,
+                  "hasPrev": false
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getChallengeById": {
+        "method": "GET",
+        "path": "/challenges/{id}",
+        "description": "Get challenge by ID",
+        "authentication": "Optional Bearer Token",
+        "parameters": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d1"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                "title": "Binary Tree Traversal",
+                "slug": "binary-tree-traversal",
+                "description": "Implement in-order, pre-order, and post-order traversal for a binary tree",
+                "type": "dsa",
+                "difficulty": "Medium",
+                "category": "algorithms",
+                "tags": ["tree", "recursion", "traversal"],
+                "timeLimit": 60,
+                "content": {
+                  "problemStatement": "Given a binary tree, implement three traversal methods...",
+                  "constraints": "1 <= n <= 100",
+                  "examples": [
+                    {
+                      "input": "root = [1,null,2,3]",
+                      "output": "[1,3,2]",
+                      "explanation": "In-order traversal result"
+                    }
+                  ],
+                  "hints": ["Consider using recursion", "Think about the order of visiting nodes"]
+                },
+                "code": {
+                  "starterCode": {
+                    "javascript": "function inorderTraversal(root) {\n    // Your code here\n}",
+                    "python": "def inorder_traversal(root):\n    # Your code here\n    pass"
+                  },
+                  "testCases": [
+                    {
+                      "input": "[1,null,2,3]",
+                      "expectedOutput": "[1,3,2]",
+                      "isHidden": false,
+                      "weight": 1
+                    }
+                  ],
+                  "validationRules": {
+                    "timeComplexity": "O(n)",
+                    "spaceComplexity": "O(h)",
+                    "forbiddenKeywords": [],
+                    "requiredKeywords": ["recursion"]
+                  }
+                },
+                "scenario": {
+                  "background": "You're working at a tech company and need to implement tree traversal algorithms",
+                  "role": "Software Engineer",
+                  "company": "TechCorp",
+                  "urgency": "medium",
+                  "distractions": []
+                },
+                "stats": {
+                  "totalAttempts": 150,
+                  "successfulAttempts": 95,
+                  "averageTime": 45.5,
+                  "averageScore": 78.2,
+                  "popularityScore": 85
+                },
+                "author": {
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                  "username": "admin"
+                },
+                "isPublic": true,
+                "isActive": true,
+                "createdAt": "2024-01-10T00:00:00.000Z",
+                "updatedAt": "2024-01-15T10:30:00.000Z"
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "404": {
+            "description": "Challenge not found",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "CHALLENGE_NOT_FOUND",
+                "message": "Challenge not found",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/challenges/64f8a1b2c3d4e5f6a7b8c9d1"
+              }
+            }
+          }
+        }
+      },
+      "getChallengeBySlug": {
+        "method": "GET",
+        "path": "/challenges/slug/{slug}",
+        "description": "Get challenge by slug",
+        "authentication": "Optional Bearer Token",
+        "parameters": {
+          "slug": {
+            "type": "string",
+            "required": true,
+            "example": "binary-tree-traversal",
+            "validation": "Lowercase letters, numbers, and hyphens only"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge retrieved successfully (same as getChallengeById)"
+          }
+        }
+      },
+      "createChallenge": {
+        "method": "POST",
+        "path": "/challenges",
+        "description": "Create new challenge (Admin/Moderator only)",
+        "authentication": "Bearer Token Required (Admin/Moderator)",
+        "requestBody": {
+          "title": {
+            "type": "string",
+            "required": true,
+            "example": "Binary Tree Traversal",
+            "validation": "3-200 characters"
+          },
+          "description": {
+            "type": "string",
+            "required": true,
+            "example": "Implement in-order, pre-order, and post-order traversal for a binary tree",
+            "validation": "10-1000 characters"
+          },
+          "type": {
+            "type": "string",
+            "required": true,
+            "enum": ["dsa", "bug-fix", "feature"],
+            "example": "dsa"
+          },
+          "difficulty": {
+            "type": "string",
+            "required": true,
+            "enum": ["Easy", "Medium", "Hard"],
+            "example": "Medium"
+          },
+          "category": {
+            "type": "string",
+            "required": true,
+            "example": "algorithms",
+            "validation": "Max 50 characters"
+          },
+          "tags": {
+            "type": "array",
+            "items": {"type": "string"},
+            "example": ["tree", "recursion", "traversal"],
+            "validation": "Max 10 tags, each max 30 characters"
+          },
+          "timeLimit": {
+            "type": "number",
+            "required": false,
+            "example": 60,
+            "validation": "1-480 minutes"
+          },
+          "content": {
+            "type": "object",
+            "required": true,
+            "properties": {
+              "problemStatement": {
+                "type": "string",
+                "required": true,
+                "example": "Given a binary tree, implement three traversal methods...",
+                "validation": "Min 50 characters"
+              },
+              "constraints": {
+                "type": "string",
+                "required": false,
+                "example": "1 <= n <= 100"
+              },
+              "examples": {
+                "type": "array",
+                "required": true,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "input": {"type": "string", "required": true},
+                    "output": {"type": "string", "required": true},
+                    "explanation": {"type": "string", "required": false}
+                  }
+                },
+                "validation": "At least one example required"
+              },
+              "hints": {
+                "type": "array",
+                "items": {"type": "string"},
+                "example": ["Consider using recursion"],
+                "validation": "Each hint max 500 characters"
+              },
+              "solution": {
+                "type": "string",
+                "required": true,
+                "example": "function inorderTraversal(root) { ... }"
+              },
+              "solutionExplanation": {
+                "type": "string",
+                "required": true,
+                "example": "The solution uses recursive approach...",
+                "validation": "Min 50 characters"
+              }
+            }
+          },
+          "code": {
+            "type": "object",
+            "required": true,
+            "properties": {
+              "starterCode": {
+                "type": "object",
+                "properties": {
+                  "javascript": {"type": "string"},
+                  "typescript": {"type": "string"},
+                  "python": {"type": "string"},
+                  "java": {"type": "string"},
+                  "cpp": {"type": "string"}
+                }
+              },
+              "testCases": {
+                "type": "array",
+                "required": true,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "input": {"type": "string", "required": true},
+                    "expectedOutput": {"type": "string", "required": true},
+                    "isHidden": {"type": "boolean", "default": false},
+                    "weight": {"type": "number", "default": 1, "min": 0.1, "max": 10}
+                  }
+                },
+                "validation": "At least one test case required"
+              },
+              "validationRules": {
+                "type": "object",
+                "properties": {
+                  "timeComplexity": {"type": "string"},
+                  "spaceComplexity": {"type": "string"},
+                  "forbiddenKeywords": {"type": "array", "items": {"type": "string"}},
+                  "requiredKeywords": {"type": "array", "items": {"type": "string"}}
+                }
+              }
+            }
+          },
+          "scenario": {
+            "type": "object",
+            "properties": {
+              "background": {"type": "string", "validation": "Max 1000 characters"},
+              "role": {"type": "string", "validation": "Max 100 characters"},
+              "company": {"type": "string", "validation": "Max 100 characters"},
+              "urgency": {"type": "string", "enum": ["low", "medium", "high"], "default": "medium"},
+              "distractions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string", "required": true},
+                    "frequency": {"type": "string", "required": true},
+                    "content": {"type": "string", "required": true, "validation": "Max 200 characters"}
+                  }
+                }
+              }
+            }
+          },
+          "isPublic": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Challenge created successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                "title": "Binary Tree Traversal",
+                "slug": "binary-tree-traversal"
+              },
+              "message": "Challenge created successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "409": {
+            "description": "Challenge with this title already exists",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "CHALLENGE_EXISTS",
+                "message": "A challenge with this title already exists",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/challenges"
+              }
+            }
+          }
+        }
+      },
+      "updateChallenge": {
+        "method": "PUT",
+        "path": "/challenges/{id}",
+        "description": "Update challenge (Author/Admin only)",
+        "authentication": "Bearer Token Required (Author/Admin)",
+        "parameters": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d1"
+          }
+        },
+        "requestBody": {
+          "description": "Same as createChallenge but all fields are optional",
+          "note": "Can update any field from the create challenge schema"
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge updated successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                "title": "Updated Binary Tree Traversal"
+              },
+              "message": "Challenge updated successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "403": {
+            "description": "Not authorized to update this challenge",
+            "body": {
+              "success": false,
+              "error": {
+                "code": "NOT_AUTHORIZED",
+                "message": "Not authorized to update this challenge",
+                "timestamp": "2024-01-15T10:30:00.000Z",
+                "path": "/challenges/64f8a1b2c3d4e5f6a7b8c9d1"
+              }
+            }
+          }
+        }
+      },
+      "deleteChallenge": {
+        "method": "DELETE",
+        "path": "/challenges/{id}",
+        "description": "Delete challenge (soft delete - Author/Admin only)",
+        "authentication": "Bearer Token Required (Author/Admin)",
+        "parameters": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d1"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge deleted successfully",
+            "body": {
+              "success": true,
+              "message": "Challenge deleted successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getChallengeStats": {
+        "method": "GET",
+        "path": "/challenges/{id}/stats",
+        "description": "Get challenge statistics",
+        "authentication": "Optional Bearer Token",
+        "parameters": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d1"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge statistics retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "totalAttempts": 150,
+                "successfulAttempts": 95,
+                "averageTime": 45.5,
+                "averageScore": 78.2,
+                "popularityScore": 85,
+                "completionRate": 63.33,
+                "difficultyRating": 4
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "startChallengeSession": {
+        "method": "POST",
+        "path": "/challenges/{id}/start",
+        "description": "Start a challenge session",
+        "authentication": "Bearer Token Required",
+        "parameters": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d1"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge session started successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "challengeId": "64f8a1b2c3d4e5f6a7b8c9d1",
+                "userId": "64f8a1b2c3d4e5f6a7b8c9d0",
+                "startedAt": "2024-01-15T10:30:00.000Z",
+                "timeLimit": 60,
+                "sessionToken": "session_64f8a1b2c3d4e5f6a7b8c9d0_64f8a1b2c3d4e5f6a7b8c9d1_1705315800000"
+              },
+              "message": "Challenge session started",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getPopularChallenges": {
+        "method": "GET",
+        "path": "/challenges/popular",
+        "description": "Get popular challenges",
+        "authentication": "Optional Bearer Token",
+        "queryParameters": {
+          "limit": {
+            "type": "number",
+            "min": 1,
+            "max": 50,
+            "default": 10,
+            "example": 10
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Popular challenges retrieved successfully",
+            "body": {
+              "success": true,
+              "data": [
+                {
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                  "title": "Binary Tree Traversal",
+                  "slug": "binary-tree-traversal",
+                  "difficulty": "Medium",
+                  "stats": {
+                    "popularityScore": 95,
+                    "totalAttempts": 200
+                  }
+                }
+              ],
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getChallengesByCategory": {
+        "method": "GET",
+        "path": "/challenges/categories",
+        "description": "Get challenges grouped by category",
+        "authentication": "Optional Bearer Token",
+        "responses": {
+          "200": {
+            "description": "Challenge categories retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "algorithms": 25,
+                "data-structures": 18,
+                "dynamic-programming": 12,
+                "system-design": 8,
+                "databases": 6
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "community": {
+      "note": "Community features are planned for Phase 3 implementation. This section documents the intended API design.",
+      "status": "PLANNED - NOT YET IMPLEMENTED",
+      "getAllPosts": {
+        "method": "GET",
+        "path": "/community/posts",
+        "description": "List community posts with filters",
+        "authentication": "Optional Bearer Token",
+        "queryParameters": {
+          "page": {"type": "number", "default": 1},
+          "limit": {"type": "number", "default": 10, "max": 50},
+          "category": {"type": "string", "enum": ["discussion", "help", "showcase", "tips", "news", "code-share"]},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "search": {"type": "string"}
+        },
+        "responses": {
+          "200": {
+            "description": "Community posts retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "data": [{
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d4",
+                  "title": "How to optimize algorithms?",
+                  "content": "Looking for tips on algorithm optimization...",
+                  "author": {
+                    "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                    "username": "devuser123"
+                  },
+                  "category": "discussion",
+                  "tags": ["algorithms", "optimization"],
+                  "interactions": {
+                    "likes": 15,
+                    "views": 120,
+                    "comments": 8
+                  },
+                  "createdAt": "2024-01-15T10:30:00.000Z"
+                }],
+                "pagination": {
+                  "page": 1,
+                  "limit": 10,
+                  "total": 50,
+                  "pages": 5,
+                  "hasNext": true,
+                  "hasPrev": false
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "createPost": {
+        "method": "POST",
+        "path": "/community/posts",
+        "description": "Create a new community post",
+        "authentication": "Bearer Token Required",
+        "requestBody": {
+          "title": {"type": "string", "required": true, "maxLength": 200},
+          "content": {"type": "string", "required": true, "maxLength": 5000},
+          "category": {"type": "string", "required": true, "enum": ["discussion", "help", "showcase", "tips", "news", "code-share"]},
+          "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 10}
+        },
+        "responses": {
+          "201": {
+            "description": "Post created successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d4",
+                "title": "How to optimize algorithms?",
+                "category": "discussion"
+              },
+              "message": "Post created successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "templates": {
+      "note": "Template system is planned for Phase 4 implementation. This section documents the intended API design.",
+      "status": "PLANNED - NOT YET IMPLEMENTED",
+      "getAllTemplates": {
+        "method": "GET",
+        "path": "/templates",
+        "description": "List code templates with filters",
+        "authentication": "Optional Bearer Token",
+        "queryParameters": {
+          "page": {"type": "number", "default": 1},
+          "limit": {"type": "number", "default": 10, "max": 50},
+          "category": {"type": "string", "enum": ["algorithm", "data-structure", "web-dev", "mobile", "backend", "devops"]},
+          "framework": {"type": "string", "enum": ["React", "Next.js", "Node.js", "Vue", "Angular", "Express", "Vanilla"]},
+          "difficulty": {"type": "string", "enum": ["Beginner", "Intermediate", "Advanced"]},
+          "search": {"type": "string"}
+        },
+        "responses": {
+          "200": {
+            "description": "Templates retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "data": [{
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d5",
+                  "title": "React Todo App",
+                  "description": "A simple todo app built with React",
+                  "author": {
+                    "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                    "username": "reactdev"
+                  },
+                  "metadata": {
+                    "category": "web-dev",
+                    "difficulty": "Beginner",
+                    "tags": ["react", "todo", "beginner"]
+                  },
+                  "stats": {
+                    "stars": 45,
+                    "downloads": 230,
+                    "forks": 12
+                  },
+                  "createdAt": "2024-01-15T10:30:00.000Z"
+                }],
+                "pagination": {
+                  "page": 1,
+                  "limit": 10,
+                  "total": 150,
+                  "pages": 15,
+                  "hasNext": true,
+                  "hasPrev": false
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "createTemplate": {
+        "method": "POST",
+        "path": "/templates",
+        "description": "Create a new code template",
+        "authentication": "Bearer Token Required",
+        "requestBody": {
+          "title": {"type": "string", "required": true, "maxLength": 100},
+          "description": {"type": "string", "required": true, "maxLength": 500},
+          "code": {
+            "type": "object",
+            "required": true,
+            "properties": {
+              "htmlCode": {"type": "string"},
+              "cssCode": {"type": "string"},
+              "jsCode": {"type": "string"},
+              "language": {"type": "string", "enum": ["javascript", "typescript", "html", "css", "react", "vue", "angular"]},
+              "framework": {"type": "string", "enum": ["React", "Next.js", "Node.js", "Vue", "Angular", "Express", "Vanilla"]}
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "required": true,
+            "properties": {
+              "category": {"type": "string", "enum": ["algorithm", "data-structure", "web-dev", "mobile", "backend", "devops"]},
+              "difficulty": {"type": "string", "enum": ["Beginner", "Intermediate", "Advanced"]},
+              "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 10}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template created successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d5",
+                "title": "React Todo App",
+                "slug": "react-todo-app"
+              },
+              "message": "Template created successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "learning": {
+      "note": "Learning Hub is planned for Phase 5 implementation. This section documents the intended API design.",
+      "status": "PLANNED - NOT YET IMPLEMENTED",
+      "getAllPlaylists": {
+        "method": "GET",
+        "path": "/learning/playlists",
+        "description": "List learning playlists",
+        "authentication": "Optional Bearer Token",
+        "queryParameters": {
+          "page": {"type": "number", "default": 1},
+          "limit": {"type": "number", "default": 10, "max": 50},
+          "category": {"type": "string"},
+          "difficulty": {"type": "string", "enum": ["Beginner", "Intermediate", "Advanced"]},
+          "search": {"type": "string"}
+        },
+        "responses": {
+          "200": {
+            "description": "Learning playlists retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "data": [{
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d6",
+                  "title": "JavaScript Fundamentals",
+                  "description": "Learn the basics of JavaScript programming",
+                  "instructor": {
+                    "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+                    "username": "instructor123"
+                  },
+                  "metadata": {
+                    "category": "programming",
+                    "difficulty": "Beginner",
+                    "duration": 120,
+                    "lessonCount": 15
+                  },
+                  "stats": {
+                    "enrollments": 450,
+                    "completions": 230,
+                    "rating": 4.7
+                  },
+                  "createdAt": "2024-01-15T10:30:00.000Z"
+                }],
+                "pagination": {
+                  "page": 1,
+                  "limit": 10,
+                  "total": 25,
+                  "pages": 3,
+                  "hasNext": true,
+                  "hasPrev": false
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "enrollInPlaylist": {
+        "method": "POST",
+        "path": "/learning/playlists/{id}/enroll",
+        "description": "Enroll in a learning playlist",
+        "authentication": "Bearer Token Required",
+        "parameters": {
+          "id": {"type": "string", "required": true, "example": "64f8a1b2c3d4e5f6a7b8c9d6"}
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully enrolled in playlist",
+            "body": {
+              "success": true,
+              "message": "Successfully enrolled in playlist",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "submissions": {
+      "createSubmission": {
+        "method": "POST",
+        "path": "/submissions",
+        "description": "Create a new code submission",
+        "authentication": "Bearer Token Required",
+        "requestBody": {
+          "challengeId": {
+            "type": "string",
+            "required": true,
+            "example": "64f8a1b2c3d4e5f6a7b8c9d1",
+            "validation": "Valid MongoDB ObjectId"
+          },
+          "code": {
+            "type": "string",
+            "required": true,
+            "example": "function solution(input) { return input.reverse(); }",
+            "validation": "Non-empty string"
+          },
+          "language": {
+            "type": "string",
+            "required": true,
+            "enum": ["javascript", "typescript", "python", "java", "cpp"],
+            "example": "javascript"
+          },
+          "simulation": {
+            "type": "object",
+            "required": false,
+            "properties": {
+              "mode": {"type": "string", "enum": ["standard", "interview", "zen"], "default": "standard"},
+              "distractionLevel": {"type": "string", "enum": ["low", "medium", "high"], "default": "medium"}
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "required": false,
+            "properties": {
+              "ipAddress": {"type": "string"},
+              "userAgent": {"type": "string"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Submission created successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d3",
+                "user": "64f8a1b2c3d4e5f6a7b8c9d0",
+                "challenge": "64f8a1b2c3d4e5f6a7b8c9d1",
+                "code": "function solution(input) { return input.reverse(); }",
+                "language": "javascript",
+                "execution": {
+                  "status": "pending",
+                  "executedInBrowser": true
+                },
+                "createdAt": "2024-01-15T10:30:00.000Z"
+              },
+              "message": "Submission created successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "400": {"$ref": "#/commonErrorResponses/400"},
+          "401": {"$ref": "#/commonErrorResponses/401"}
+        }
+      },
+      "processExecutionResults": {
+        "method": "POST",
+        "path": "/submissions/{id}/results",
+        "description": "Process execution results from frontend",
+        "authentication": "Bearer Token Required",
+        "parameters": {
+          "id": {"type": "string", "required": true, "example": "64f8a1b2c3d4e5f6a7b8c9d3"}
+        },
+        "requestBody": {
+          "status": {
+            "type": "string",
+            "required": true,
+            "enum": ["completed", "failed", "timeout"],
+            "example": "completed"
+          },
+          "score": {"type": "number", "min": 0, "max": 100, "example": 85},
+          "totalTests": {"type": "number", "example": 10},
+          "passedTests": {"type": "number", "example": 8},
+          "executionTime": {"type": "number", "example": 1500, "description": "Time in milliseconds"},
+          "memoryUsage": {"type": "number", "example": 2048, "description": "Memory in KB"},
+          "output": {"type": "string", "example": "Test passed successfully"},
+          "error": {"type": "string", "example": "TypeError: Cannot read property..."},
+          "testResults": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "testCase": {"type": "string"},
+                "passed": {"type": "boolean"},
+                "actualOutput": {"type": "string"},
+                "executionTime": {"type": "number"},
+                "error": {"type": "string"}
+              }
+            }
+          },
+          "browserEnvironment": {"type": "string", "example": "Chrome 120.0.0"}
+        },
+        "responses": {
+          "200": {
+            "description": "Execution results processed successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d3",
+                "execution": {
+                  "status": "completed",
+                  "score": 85,
+                  "totalTests": 10,
+                  "passedTests": 8,
+                  "executionTime": 1500
+                },
+                "metadata": {
+                  "submittedAt": "2024-01-15T10:35:00.000Z",
+                  "isCompleted": true
+                }
+              },
+              "message": "Execution results processed successfully",
+              "timestamp": "2024-01-15T10:35:00.000Z"
+            }
+          },
+          "404": {"$ref": "#/commonErrorResponses/404"}
+        }
+      },
+      "getUserSubmissions": {
+        "method": "GET",
+        "path": "/submissions",
+        "description": "Get user submissions with pagination and filters",
+        "authentication": "Bearer Token Required",
+        "queryParameters": {
+          "page": {"type": "number", "default": 1, "example": 1},
+          "limit": {"type": "number", "default": 10, "max": 50, "example": 10},
+          "sort": {"type": "string", "default": "createdAt", "enum": ["createdAt", "score", "executionTime"]},
+          "order": {"type": "string", "default": "desc", "enum": ["asc", "desc"]},
+          "challenge": {"type": "string", "example": "64f8a1b2c3d4e5f6a7b8c9d1"},
+          "language": {"type": "string", "enum": ["javascript", "typescript", "python", "java", "cpp"]},
+          "status": {"type": "string", "enum": ["pending", "completed", "failed", "timeout"]},
+          "minScore": {"type": "number", "min": 0, "max": 100},
+          "maxScore": {"type": "number", "min": 0, "max": 100}
+        },
+        "responses": {
+          "200": {
+            "description": "Submissions retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "data": [{
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d3",
+                  "challenge": {
+                    "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                    "title": "Binary Tree Traversal",
+                    "difficulty": "Medium"
+                  },
+                  "language": "javascript",
+                  "execution": {
+                    "status": "completed",
+                    "score": 85
+                  },
+                  "createdAt": "2024-01-15T10:30:00.000Z"
+                }],
+                "pagination": {
+                  "page": 1,
+                  "limit": 10,
+                  "total": 25,
+                  "pages": 3,
+                  "hasNext": true,
+                  "hasPrev": false
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "getUserSubmissionStats": {
+        "method": "GET",
+        "path": "/submissions/stats/user",
+        "description": "Get user submission statistics",
+        "authentication": "Bearer Token Required",
+        "responses": {
+          "200": {
+            "description": "Statistics retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "totalSubmissions": 25,
+                "completedSubmissions": 18,
+                "averageScore": 78.5,
+                "bestScore": 95,
+                "totalExecutionTime": 45000,
+                "averageExecutionTime": 1800,
+                "languageBreakdown": {
+                  "javascript": 15,
+                  "python": 8,
+                  "typescript": 2
+                },
+                "difficultyBreakdown": {
+                  "Easy": 5,
+                  "Medium": 12,
+                  "Hard": 8
+                },
+                "recentActivity": [{
+                  "date": "2024-01-15",
+                  "submissions": 3,
+                  "averageScore": 82
+                }]
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "achievements": {
+      "getAllAchievements": {
+        "method": "GET",
+        "path": "/achievements",
+        "description": "Get all active achievements",
+        "authentication": "None",
+        "responses": {
+          "200": {
+            "description": "List of all active achievements",
+            "body": {
+              "success": {"type": "boolean", "example": true},
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {"type": "string", "example": "60d21b4667d0d8992e610c85"},
+                    "name": {"type": "string", "example": "First Steps"},
+                    "description": {"type": "string", "example": "Complete your first challenge"},
+                    "icon": {"type": "string", "example": "first-steps.png"},
+                    "category": {"type": "string", "example": "beginner"},
+                    "rarity": {"type": "string", "example": "common"}
+                  }
+                }
+              }
+            }
+          },
+          "500": {"$ref": "#/commonErrorResponses/500"}
+        }
+      },
+      "getAchievement": {
+        "method": "GET",
+        "path": "/achievements/{id}",
+        "description": "Get achievement by ID",
+        "authentication": "None",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Achievement ID",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Achievement details",
+            "body": {
+              "success": {"type": "boolean", "example": true},
+              "data": {
+                "type": "object",
+                "properties": {
+                  "_id": {"type": "string", "example": "60d21b4667d0d8992e610c85"},
+                  "name": {"type": "string", "example": "First Steps"},
+                  "description": {"type": "string", "example": "Complete your first challenge"},
+                  "icon": {"type": "string", "example": "first-steps.png"},
+                  "category": {"type": "string", "example": "beginner"},
+                  "criteria": {
+                    "type": "object",
+                    "properties": {
+                      "type": {"type": "string", "example": "challenge_count"},
+                      "target": {"type": "number", "example": 1},
+                      "conditions": {"type": "object"}
+                    }
+                  },
+                  "rewards": {
+                    "type": "object",
+                    "properties": {
+                      "xp": {"type": "number", "example": 100},
+                      "badge": {"type": "string", "example": "first-steps-badge"},
+                      "title": {"type": "string", "example": "Beginner"}
+                    }
+                  },
+                  "rarity": {"type": "string", "example": "common"},
+                  "isActive": {"type": "boolean", "example": true}
+                }
+              }
+            }
+          },
+          "404": {"$ref": "#/commonErrorResponses/404"},
+          "500": {"$ref": "#/commonErrorResponses/500"}
+        }
+      },
+      "getUserAchievements": {
+        "method": "GET",
+        "path": "/achievements/user/me",
+        "description": "Get current user's achievements",
+        "authentication": "Bearer Token Required",
+        "responses": {
+          "200": {
+            "description": "List of user's achievements",
+            "body": {
+              "success": {"type": "boolean", "example": true},
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {"type": "string", "example": "60d21b4667d0d8992e610c86"},
+                    "user": {"type": "string", "example": "60d21b4667d0d8992e610c84"},
+                    "achievement": {
+                      "type": "object",
+                      "properties": {
+                        "_id": {"type": "string", "example": "60d21b4667d0d8992e610c85"},
+                        "name": {"type": "string", "example": "First Steps"},
+                        "description": {"type": "string", "example": "Complete your first challenge"},
+                        "icon": {"type": "string", "example": "first-steps.png"},
+                        "category": {"type": "string", "example": "beginner"},
+                        "rarity": {"type": "string", "example": "common"}
+                      }
+                    },
+                    "unlockedAt": {"type": "string", "format": "date-time", "example": "2023-05-15T10:00:00Z"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {"$ref": "#/commonErrorResponses/401"},
+          "500": {"$ref": "#/commonErrorResponses/500"}
+        }
+      },
+      "checkForNewAchievements": {
+        "method": "POST",
+        "path": "/achievements/check",
+        "description": "Check and award new achievements for the current user",
+        "authentication": "Bearer Token Required",
+        "responses": {
+          "200": {
+            "description": "New achievements check result",
+            "body": {
+              "success": {"type": "boolean", "example": true},
+              "data": {
+                "newAchievements": {"type": "array", "items": {"type": "object"}, "example": []},
+                "totalAchievements": {"type": "number", "example": 0},
+                "unlockedCount": {"type": "number", "example": 0},
+                "lockedCount": {"type": "number", "example": 0}
+              }
+            }
+          },
+          "401": {"$ref": "#/commonErrorResponses/401"},
+          "500": {"$ref": "#/commonErrorResponses/500"}
+        }
+      },
+      "createAchievement": {
+        "method": "POST",
+        "path": "/achievements",
+        "description": "Create a new achievement (Admin only)",
+        "authentication": "Bearer Token Required (Admin)",
+        "requestBody": {
+          "name": {"type": "string", "required": true, "example": "Master Coder"},
+          "description": {"type": "string", "required": true, "example": "Complete 100 challenges"},
+          "icon": {"type": "string", "example": "master-coder.png"},
+          "category": {
+            "type": "string",
+            "required": true,
+            "enum": ["beginner", "performance", "consistency", "social"],
+            "example": "performance"
+          },
+          "criteria": {
+            "type": "object",
+            "required": true,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["challenge_count", "streak", "score", "time", "special"],
+                "example": "challenge_count"
+              },
+              "target": {"type": "number", "required": true, "example": 100},
+              "conditions": {"type": "object", "default": {}}
+            }
+          },
+          "rewards": {
+            "type": "object",
+            "default": {"xp": 0},
+            "properties": {
+              "xp": {"type": "number", "default": 0, "example": 1000},
+              "badge": {"type": "string", "example": "master-coder-badge"},
+              "title": {"type": "string", "example": "Master Coder"}
+            }
+          },
+          "rarity": {
+            "type": "string",
+            "enum": ["common", "rare", "epic", "legendary"],
+            "default": "common",
+            "example": "legendary"
+          },
+          "isActive": {"type": "boolean", "default": true}
+        },
+        "responses": {
+          "201": {
+            "description": "Achievement created successfully",
+            "body": {
+              "success": {"type": "boolean", "example": true},
+              "data": {"$ref": "#/definitions/Achievement"}
+            }
+          },
+          "400": {"$ref": "#/commonErrorResponses/400"},
+          "401": {"$ref": "#/commonErrorResponses/401"},
+          "403": {"$ref": "#/commonErrorResponses/403"},
+          "500": {"$ref": "#/commonErrorResponses/500"}
+        }
+      },
+      "updateAchievement": {
+        "method": "PUT",
+        "path": "/achievements/{id}",
+        "description": "Update an achievement (Admin only)",
+        "authentication": "Bearer Token Required (Admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Achievement ID",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "name": {"type": "string", "example": "Master Coder"},
+          "description": {"type": "string", "example": "Complete 100 challenges"},
+          "icon": {"type": "string", "example": "master-coder.png"},
+          "category": {
+            "type": "string",
+            "enum": ["beginner", "performance", "consistency", "social"],
+            "example": "performance"
+          },
+          "criteria": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["challenge_count", "streak", "score", "time", "special"]
+              },
+              "target": {"type": "number"},
+              "conditions": {"type": "object"}
+            }
+          },
+          "rewards": {
+            "type": "object",
+            "properties": {
+              "xp": {"type": "number"},
+              "badge": {"type": "string"},
+              "title": {"type": "string"}
+            }
+          },
+          "rarity": {
+            "type": "string",
+            "enum": ["common", "rare", "epic", "legendary"]
+          },
+          "isActive": {"type": "boolean"}
+        },
+        "responses": {
+          "200": {
+            "description": "Achievement updated successfully",
+            "body": {
+              "success": {"type": "boolean", "example": true},
+              "data": {"$ref": "#/definitions/Achievement"}
+            }
+          },
+          "400": {"$ref": "#/commonErrorResponses/400"},
+          "401": {"$ref": "#/commonErrorResponses/401"},
+          "403": {"$ref": "#/commonErrorResponses/403"},
+          "404": {"$ref": "#/commonErrorResponses/404"},
+          "500": {"$ref": "#/commonErrorResponses/500"}
+        }
+      },
+      "deleteAchievement": {
+        "method": "DELETE",
+        "path": "/achievements/{id}",
+        "description": "Delete an achievement (Admin only)",
+        "authentication": "Bearer Token Required (Admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Achievement ID",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Achievement deleted successfully",
+            "body": {
+              "success": {"type": "boolean", "example": true},
+              "data": {}
+            }
+          },
+          "401": {"$ref": "#/commonErrorResponses/401"},
+          "403": {"$ref": "#/commonErrorResponses/403"},
+          "404": {"$ref": "#/commonErrorResponses/404"},
+          "500": {"$ref": "#/commonErrorResponses/500"}
+        }
+      }
+    },
+    "notifications": {
+      "getUserNotifications": {
+        "method": "GET",
+        "path": "/notifications",
+        "description": "Get user notifications with pagination and filters",
+        "authentication": "Bearer Token Required",
+        "queryParameters": {
+          "page": {"type": "number", "default": 1, "example": 1},
+          "limit": {"type": "number", "default": 20, "max": 50, "example": 20},
+          "sort": {"type": "string", "default": "createdAt", "enum": ["createdAt", "updatedAt", "priority"]},
+          "order": {"type": "string", "default": "desc", "enum": ["asc", "desc"]},
+          "type": {"type": "string", "enum": ["achievement", "challenge", "social", "system"], "example": "achievement"},
+          "priority": {"type": "string", "enum": ["low", "medium", "high"], "example": "high"},
+          "isRead": {"type": "boolean", "example": false},
+          "dateFrom": {"type": "string", "format": "date", "example": "2024-01-01"},
+          "dateTo": {"type": "string", "format": "date", "example": "2024-01-31"}
+        },
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {
+                "data": [{
+                  "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                  "recipient": "64f8a1b2c3d4e5f6a7b8c9d0",
+                  "type": "achievement",
+                  "title": "New Achievement Unlocked!",
+                  "message": "Congratulations! You've earned the 'First Steps' achievement.",
+                  "data": {"achievementId": "64f8a1b2c3d4e5f6a7b8c9d2"},
+                  "priority": "medium",
+                  "channels": ["email", "push"],
+                  "status": {
+                    "isRead": false,
+                    "isDelivered": true,
+                    "deliveredAt": "2024-01-15T10:30:00.000Z"
+                  },
+                  "createdAt": "2024-01-15T10:30:00.000Z"
+                }],
+                "pagination": {
+                  "page": 1,
+                  "limit": 20,
+                  "total": 50,
+                  "pages": 3,
+                  "hasNext": true,
+                  "hasPrev": false
+                }
+              },
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "401": {"$ref": "#/commonErrorResponses/401"}
+        }
+      },
+      "getUnreadCount": {
+        "method": "GET",
+        "path": "/notifications/unread/count",
+        "description": "Get count of unread notifications",
+        "authentication": "Bearer Token Required",
+        "responses": {
+          "200": {
+            "description": "Unread count retrieved successfully",
+            "body": {
+              "success": true,
+              "data": {"count": 5},
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "401": {"$ref": "#/commonErrorResponses/401"}
+        }
+      },
+      "markAsRead": {
+        "method": "PATCH",
+        "path": "/notifications/{id}/read",
+        "description": "Mark notification as read",
+        "authentication": "Bearer Token Required",
+        "parameters": {
+          "id": {"type": "string", "required": true, "example": "64f8a1b2c3d4e5f6a7b8c9d1"}
+        },
+        "responses": {
+          "200": {
+            "description": "Notification marked as read",
+            "body": {
+              "success": true,
+              "message": "Notification marked as read",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "404": {"$ref": "#/commonErrorResponses/404"}
+        }
+      },
+      "markAllAsRead": {
+        "method": "PATCH",
+        "path": "/notifications/read-all",
+        "description": "Mark all notifications as read",
+        "authentication": "Bearer Token Required",
+        "responses": {
+          "200": {
+            "description": "All notifications marked as read",
+            "body": {
+              "success": true,
+              "message": "All notifications marked as read",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "deleteNotification": {
+        "method": "DELETE",
+        "path": "/notifications/{id}",
+        "description": "Delete a notification",
+        "authentication": "Bearer Token Required",
+        "parameters": {
+          "id": {"type": "string", "required": true, "example": "64f8a1b2c3d4e5f6a7b8c9d1"}
+        },
+        "responses": {
+          "200": {
+            "description": "Notification deleted successfully",
+            "body": {
+              "success": true,
+              "message": "Notification deleted successfully",
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          },
+          "404": {"$ref": "#/commonErrorResponses/404"}
+        }
+      },
+      "getByType": {
+        "method": "GET",
+        "path": "/notifications/type/{type}",
+        "description": "Get notifications by type",
+        "authentication": "Bearer Token Required",
+        "parameters": {
+          "type": {"type": "string", "required": true, "enum": ["achievement", "challenge", "social", "system"], "example": "achievement"}
+        },
+        "queryParameters": {
+          "limit": {"type": "number", "default": 10, "max": 50, "example": 10}
+        },
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully",
+            "body": {
+              "success": true,
+              "data": [{
+                "_id": "64f8a1b2c3d4e5f6a7b8c9d1",
+                "type": "achievement",
+                "title": "New Achievement Unlocked!",
+                "message": "Congratulations! You've earned an achievement.",
+                "priority": "medium",
+                "channels": ["email", "push"],
+                "createdAt": "2024-01-15T10:30:00.000Z"
+              }],
+              "timestamp": "2024-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "system": {
+      "healthCheck": {
+        "method": "GET",
+        "path": "/health",
+        "description": "Health check endpoint",
+        "authentication": "None",
+        "responses": {
+          "200": {
+            "description": "System is healthy",
+            "body": {
+              "status": "OK",
+              "timestamp": "2024-01-15T10:30:00.000Z",
+              "uptime": 3600.5,
+              "environment": "development"
+            }
+          }
+        }
+      },
+      "apiInfo": {
+        "method": "GET",
+        "path": "/api",
+        "description": "API information and available endpoints",
+        "authentication": "None",
+        "responses": {
+          "200": {
+            "description": "API information",
+            "body": {
+              "message": "StackRush API Server",
+              "version": "v1",
+              "timestamp": "2024-01-15T10:30:00.000Z",
+              "endpoints": {
+                "auth": "/api/auth",
+                "users": "/api/users",
+                "challenges": "/api/challenges",
+                "submissions": "/api/submissions",
+                "achievements": "/api/achievements",
+                "notifications": "/api/notifications",
+                "system": "/api/health"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "commonErrorResponses": {
+    "400": {
+      "description": "Bad Request - Validation Error",
+      "body": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Request validation failed",
+          "details": [
+            {
+              "field": "fieldName",
+              "message": "Validation error message",
+              "value": "invalid-value"
+            }
+          ],
+          "timestamp": "2024-01-15T10:30:00.000Z",
+          "path": "/api/endpoint"
+        }
+      }
+    },
+    "401": {
+      "description": "Unauthorized - Authentication Required",
+      "body": {
+        "success": false,
+        "error": {
+          "code": "MISSING_TOKEN",
+          "message": "Access token is required",
+          "timestamp": "2024-01-15T10:30:00.000Z",
+          "path": "/api/endpoint"
+        }
+      }
+    },
+    "403": {
+      "description": "Forbidden - Insufficient Permissions",
+      "body": {
+        "success": false,
+        "error": {
+          "code": "INSUFFICIENT_PERMISSIONS",
+          "message": "Insufficient permissions to access this resource",
+          "timestamp": "2024-01-15T10:30:00.000Z",
+          "path": "/api/endpoint"
+        }
+      }
+    },
+    "404": {
+      "description": "Not Found",
+      "body": {
+        "success": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "Route GET /api/nonexistent not found",
+          "timestamp": "2024-01-15T10:30:00.000Z",
+          "path": "/api/nonexistent"
+        }
+      }
+    },
+    "429": {
+      "description": "Too Many Requests - Rate Limited",
+      "body": {
+        "success": false,
+        "error": {
+          "code": "TOO_MANY_REQUESTS",
+          "message": "Too many requests from this IP, please try again later",
+          "timestamp": "2024-01-15T10:30:00.000Z"
+        }
+      }
+    },
+    "500": {
+      "description": "Internal Server Error",
+      "body": {
+        "success": false,
+        "error": {
+          "code": "INTERNAL_ERROR",
+          "message": "Internal Server Error",
+          "timestamp": "2024-01-15T10:30:00.000Z",
+          "path": "/api/endpoint"
+        }
+      }
+    }
+  },
+  "authenticationGuide": {
+    "description": "How to authenticate with the API",
+    "steps": [
+      "1. Register a new account using POST /api/auth/register",
+      "2. Login using POST /api/auth/login to get access and refresh tokens",
+      "3. Include the access token in the Authorization header: 'Bearer <access_token>'",
+      "4. When the access token expires (15 minutes), use POST /api/auth/refresh with the refresh token",
+      "5. Refresh tokens expire after 7 days and need to be renewed by logging in again"
+    ],
+    "headerFormat": "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenExpiry": {
+      "accessToken": "15 minutes",
+      "refreshToken": "7 days"
+    }
+  },
+  "rateLimiting": {
+    "general": "100 requests per 15 minutes per IP for /api/* endpoints",
+    "authentication": "5 requests per 15 minutes per IP for auth endpoints",
+    "passwordReset": "3 requests per hour per IP for password reset"
+  },
+  "dataTypes": {
+    "ObjectId": {
+      "description": "MongoDB ObjectId",
+      "format": "24-character hexadecimal string",
+      "example": "64f8a1b2c3d4e5f6a7b8c9d0"
+    },
+    "JWT": {
+      "description": "JSON Web Token",
+      "format": "Base64 encoded token with header.payload.signature",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    },
+    "ISO8601": {
+      "description": "ISO 8601 date-time format",
+      "format": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "example": "2024-01-15T10:30:00.000Z"
+    }
+  }
+}
